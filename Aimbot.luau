@@ -1,120 +1,151 @@
 --// SERVICES
 local TweenService = game:GetService("TweenService")
 
---// MINI BUTTON (premium look)
-local miniBtn = Instance.new("TextButton", gui)
-miniBtn.Size = UDim2.fromOffset(42,42)
-miniBtn.Position = UDim2.fromScale(0.01,0.5)
-miniBtn.Text = ""
-miniBtn.BackgroundColor3 = Color3.fromRGB(25,25,35)
+--// CONFIG
+local PANEL_WIDTH = 200
+local PANEL_HEIGHT = 260
+
+--// MINI BUTTON (KRNL STYLE DOT)
+local miniBtn = Instance.new("Frame", gui)
+miniBtn.Size = UDim2.fromOffset(14,60)
+miniBtn.Position = UDim2.fromScale(0,0.5) - UDim2.fromOffset(0,30)
+miniBtn.BackgroundColor3 = Color3.fromRGB(120,60,255)
 miniBtn.BorderSizePixel = 0
 Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(1,0)
 
-local icon = Instance.new("TextLabel", miniBtn)
-icon.Size = UDim2.fromScale(1,1)
-icon.BackgroundTransparency = 1
-icon.Text = "≡"
-icon.Font = Enum.Font.GothamBold
-icon.TextScaled = true
-icon.TextColor3 = Color3.fromRGB(200,200,255)
+local miniGlow = Instance.new("UIStroke", miniBtn)
+miniGlow.Color = Color3.fromRGB(170,120,255)
+miniGlow.Thickness = 2
 
-local glow = Instance.new("UIStroke", miniBtn)
-glow.Color = Color3.fromRGB(140,80,255)
-glow.Thickness = 1.5
+miniBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		miniBtn:TweenSize(UDim2.fromOffset(16,70),"Out","Quad",0.08,true)
+	end
+end)
 
---// SLIDING PANEL
-local panelWidth = 180
+miniBtn.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		miniBtn:TweenSize(UDim2.fromOffset(14,60),"Out","Quad",0.08,true)
+	end
+end)
 
-local fovPanel = Instance.new("Frame", gui)
-fovPanel.Size = UDim2.fromOffset(panelWidth,240)
-fovPanel.Position = UDim2.fromScale(0,0.5) - UDim2.fromOffset(panelWidth + 10,120)
-fovPanel.BackgroundColor3 = Color3.fromRGB(18,18,28)
-fovPanel.BorderSizePixel = 0
-Instance.new("UICorner", fovPanel).CornerRadius = UDim.new(0,16)
+--// PANEL
+local panel = Instance.new("Frame", gui)
+panel.Size = UDim2.fromOffset(PANEL_WIDTH, PANEL_HEIGHT)
+panel.Position = UDim2.fromScale(0,0.5) - UDim2.fromOffset(PANEL_WIDTH + 20, PANEL_HEIGHT/2)
+panel.BackgroundColor3 = Color3.fromRGB(12,12,18)
+panel.BorderSizePixel = 0
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0,14)
 
--- gradient = instant drip
-local gradient = Instance.new("UIGradient", fovPanel)
-gradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(30,30,50)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(15,15,25))
+-- subtle gradient 🧠
+local grad = Instance.new("UIGradient", panel)
+grad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(22,22,35)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(10,10,15))
 }
-gradient.Rotation = 90
+grad.Rotation = 90
 
-local stroke = Instance.new("UIStroke", fovPanel)
+-- neon outline
+local stroke = Instance.new("UIStroke", panel)
 stroke.Color = Color3.fromRGB(120,60,255)
-stroke.Thickness = 1.5
+stroke.Thickness = 1.2
+stroke.Transparency = 0.2
+
+-- inner glow illusion
+local inner = Instance.new("Frame", panel)
+inner.Size = UDim2.fromScale(1,1)
+inner.BackgroundTransparency = 1
+local innerStroke = Instance.new("UIStroke", inner)
+innerStroke.Color = Color3.fromRGB(170,120,255)
+innerStroke.Thickness = 1
+innerStroke.Transparency = 0.7
 
 --// TITLE
-local title = Instance.new("TextLabel", fovPanel)
-title.Size = UDim2.fromScale(1,0.2)
+local title = Instance.new("TextLabel", panel)
+title.Size = UDim2.fromOffset(PANEL_WIDTH,40)
 title.BackgroundTransparency = 1
 title.Text = "FOV CONTROL"
-title.Font = Enum.Font.GothamBlack
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(210,210,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.fromRGB(200,200,255)
 
---// BUTTON GRID CONTAINER
-local grid = Instance.new("Frame", fovPanel)
-grid.Size = UDim2.fromScale(1,0.8)
-grid.Position = UDim2.fromScale(0,0.2)
-grid.BackgroundTransparency = 1
+--// CENTER D-PAD CONTAINER
+local center = Instance.new("Frame", panel)
+center.Size = UDim2.fromOffset(140,140)
+center.Position = UDim2.fromScale(0.5,0.55)
+center.AnchorPoint = Vector2.new(0.5,0.5)
+center.BackgroundTransparency = 1
 
---// GRID LAYOUT
-local layout = Instance.new("UIGridLayout", grid)
-layout.CellSize = UDim2.fromScale(0.3,0.25)
-layout.CellPadding = UDim2.fromScale(0.05,0.05)
-
---// BUTTON CREATOR
-local function FancyBtn(txt, fn)
-	local b = Instance.new("TextButton", grid)
-	b.Text = txt
-	b.BackgroundColor3 = Color3.fromRGB(35,35,55)
-	b.TextColor3 = Color3.fromRGB(230,230,255)
+--// BUTTON STYLE FUNCTION
+local function DPadButton(text, pos, callback)
+	local b = Instance.new("TextButton", center)
+	b.Size = UDim2.fromOffset(40,40)
+	b.Position = pos
+	b.Text = text
+	b.BackgroundColor3 = Color3.fromRGB(28,28,45)
+	b.TextColor3 = Color3.fromRGB(220,220,255)
 	b.Font = Enum.Font.GothamBold
-	b.TextScaled = true
+	b.TextSize = 18
 	b.BorderSizePixel = 0
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
 
 	local s = Instance.new("UIStroke", b)
-	s.Color = Color3.fromRGB(100,60,255)
+	s.Color = Color3.fromRGB(110,70,255)
+	s.Transparency = 0.3
 
-	-- hover animation 🔥
-	b.MouseEnter:Connect(function()
-		TweenService:Create(b, TweenInfo.new(0.15), {
-			BackgroundColor3 = Color3.fromRGB(55,55,85)
+	-- press animation
+	b.MouseButton1Down:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.08), {
+			BackgroundColor3 = Color3.fromRGB(50,50,80)
 		}):Play()
 	end)
 
-	b.MouseLeave:Connect(function()
-		TweenService:Create(b, TweenInfo.new(0.15), {
-			BackgroundColor3 = Color3.fromRGB(35,35,55)
+	b.MouseButton1Up:Connect(function()
+		TweenService:Create(b, TweenInfo.new(0.08), {
+			BackgroundColor3 = Color3.fromRGB(28,28,45)
 		}):Play()
 	end)
 
-	b.MouseButton1Click:Connect(fn)
+	b.MouseButton1Click:Connect(callback)
 end
 
---// BUTTONS (clean layout)
-FancyBtn("↑", function() Offset -= Vector2.new(0,Step) end)
-FancyBtn("↓", function() Offset += Vector2.new(0,Step) end)
-FancyBtn("←", function() Offset -= Vector2.new(Step,0) end)
-FancyBtn("→", function() Offset += Vector2.new(Step,0) end)
-FancyBtn("RESET", function() Offset = Vector2.new(0,0) end)
+--// D-PAD (PERFECT CROSS 🔥)
+DPadButton("↑", UDim2.fromOffset(50,0), function()
+	Offset -= Vector2.new(0,Step)
+end)
 
---// SLIDE LOGIC
-local opened = false
+DPadButton("↓", UDim2.fromOffset(50,100), function()
+	Offset += Vector2.new(0,Step)
+end)
 
-local openPos = UDim2.fromScale(0.01,0.5) - UDim2.fromOffset(0,120)
-local closedPos = UDim2.fromScale(0,0.5) - UDim2.fromOffset(panelWidth + 10,120)
+DPadButton("←", UDim2.fromOffset(0,50), function()
+	Offset -= Vector2.new(Step,0)
+end)
 
-miniBtn.MouseButton1Click:Connect(function()
-	opened = not opened
+DPadButton("→", UDim2.fromOffset(100,50), function()
+	Offset += Vector2.new(Step,0)
+end)
 
-	local target = opened and openPos or closedPos
+DPadButton("•", UDim2.fromOffset(50,50), function()
+	Offset = Vector2.new(0,0)
+end)
 
-	TweenService:Create(fovPanel, TweenInfo.new(
-		0.35,
-		Enum.EasingStyle.Quint,
-		Enum.EasingDirection.Out
-	), {Position = target}):Play()
+--// SLIDE ANIMATION
+local open = false
+
+local openPos = UDim2.fromScale(0,0.5) - UDim2.fromOffset(-10, PANEL_HEIGHT/2)
+local closedPos = UDim2.fromScale(0,0.5) - UDim2.fromOffset(PANEL_WIDTH + 20, PANEL_HEIGHT/2)
+
+miniBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		open = not open
+
+		TweenService:Create(panel, TweenInfo.new(
+			0.4,
+			Enum.EasingStyle.Quart,
+			Enum.EasingDirection.Out
+		), {
+			Position = open and openPos or closedPos
+		}):Play()
+	end
 end)
