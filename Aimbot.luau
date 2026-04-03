@@ -50,25 +50,30 @@ end)
 
 -- mini purple button
 local mini = Instance.new("TextButton", gui)
-mini.Size=UDim2.fromOffset(20,60)
-mini.Position=UDim2.fromOffset(10,200)
-mini.BackgroundColor3=Color3.fromRGB(140,70,255)
-mini.Text=""
+mini.Size = UDim2.fromOffset(20,60)
+mini.Position = UDim2.fromOffset(10,200)
+mini.BackgroundColor3 = Color3.fromRGB(140,70,255)
+mini.Text = ""
+mini.AutoButtonColor = true
 Instance.new("UICorner", mini)
 MakeDraggable(mini)
 
 -- main panel
 local frame = Instance.new("Frame", gui)
-frame.Size=UDim2.fromOffset(220,340)
-frame.Position=UDim2.fromOffset(40,200)
-frame.BackgroundColor3=Color3.fromRGB(20,20,30)
+frame.Size = UDim2.fromOffset(220,340)
+frame.Position = UDim2.fromOffset(-260,200)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
 Instance.new("UICorner", frame)
 MakeDraggable(frame)
 
-local open=true
+local OPEN_POS = UDim2.fromOffset(40,200)
+local CLOSED_POS = UDim2.fromOffset(-260,200)
+local open = false
+
 mini.MouseButton1Click:Connect(function()
-	open=not open
-	TweenService:Create(frame,TweenInfo.new(0.3,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{Position=open and frame.Position or frame.Position-UDim2.fromOffset(0,0)}):Play()
+	open = not open
+	local goal = open and OPEN_POS or CLOSED_POS
+	TweenService:Create(frame,TweenInfo.new(0.35,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{Position=goal}):Play()
 end)
 
 local function Toggle(name,y,callback)
@@ -199,7 +204,7 @@ local function getTarget()
 	return closest
 end
 
--- mini fov control panel
+-- mini FOV control panel
 local fovPanel=Instance.new("Frame",frame)
 fovPanel.Size=UDim2.fromOffset(100,140)
 fovPanel.Position=UDim2.fromOffset(220,0)
