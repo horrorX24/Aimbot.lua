@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local FOV_RADIUS = 120
-local Smoothness = 0.2
+local Smoothness = 0.04
 
 local aimbotEnabled = false
 local fovEnabled = false
@@ -34,6 +34,7 @@ local function MakeDraggable(obj)
 		end
 	end)
 end
+
 UIS.InputChanged:Connect(function(input)
 	if dragging and dragObject then
 		if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then
@@ -42,19 +43,19 @@ UIS.InputChanged:Connect(function(input)
 		end
 	end
 end)
+
 UIS.InputEnded:Connect(function(input)
 	if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
 		dragging=false; dragObject=nil
 	end
 end)
 
--- mini purple button
+-- mini button
 local mini = Instance.new("TextButton", gui)
 mini.Size = UDim2.fromOffset(20,60)
 mini.Position = UDim2.fromOffset(10,200)
 mini.BackgroundColor3 = Color3.fromRGB(140,70,255)
 mini.Text = ""
-mini.AutoButtonColor = true
 Instance.new("UICorner", mini)
 MakeDraggable(mini)
 
@@ -99,26 +100,42 @@ local function Slider(name,y,min,max,default,callback,div)
 	label.Size=UDim2.fromOffset(180,20)
 	label.BackgroundTransparency=1
 	label.TextColor3=Color3.new(1,1,1)
+
 	local bar=Instance.new("Frame",frame)
 	bar.Position=UDim2.fromOffset(20,y+20)
 	bar.Size=UDim2.fromOffset(180,10)
 	bar.BackgroundColor3=Color3.fromRGB(60,60,80)
+
 	local fill=Instance.new("Frame",bar)
 	fill.BackgroundColor3=Color3.fromRGB(140,70,255)
+
 	local draggingSlider=false
+
 	local function setVal(v)
 		local percent=(v-min)/(max-min)
 		fill.Size=UDim2.fromScale(percent,1)
-		if div then label.Text=name..": "..(v/div) else label.Text=name..": "..v end
+		if div then
+			label.Text=name..": "..(v/div)
+		else
+			label.Text=name..": "..v
+		end
 		callback(v)
 	end
+
 	setVal(default)
+
 	bar.InputBegan:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingSlider=true end
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			draggingSlider=true
+		end
 	end)
+
 	UIS.InputEnded:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then draggingSlider=false end
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			draggingSlider=false
+		end
 	end)
+
 	UIS.InputChanged:Connect(function(i)
 		if draggingSlider then
 			if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
@@ -138,15 +155,22 @@ Toggle("Alive",170,function(v) aliveCheck=v end)
 Toggle("Wall",210,function(v) wallCheck=v end)
 
 Slider("FOV Size",250,50,400,120,function(v) FOV_RADIUS=v end)
-Slider("Smoothness",300,0,10,2,function(v) Smoothness=v/10 end,10)
 
+-- 🔥 FIXED SMOOTHNESS
+Slider("Smoothness",300,0,10,2,function(v)
+	Smoothness = v == 0 and 0 or (v / 50)
+end,10)
+
+-- FOV circle
 local circle=Drawing.new("Circle")
 circle.Thickness=2
 circle.Color=Color3.fromRGB(140,70,255)
 circle.Filled=false
 circle.Visible=false
 
+-- ESP system
 local ESPs={}
+
 local function createESP(player)
 	if ESPs[player] then return end
 	local h=Instance.new("Highlight")
@@ -155,12 +179,38 @@ local function createESP(player)
 	h.Parent=gui
 	ESPs[player]=h
 end
+
 local function removeESP(player)
 	if ESPs[player] then
 		ESPs[player]:Destroy()
 		ESPs[player]=nil
 	end
 end
+
+-- 🔥 ESP LOOP (0.1s)
+task.spawn(function()
+	while true do
+		task.wait(0.1)
+
+		for _,p in pairs(Players:GetPlayers()) do
+			if p~=LocalPlayer and p.Character then
+				if espEnabled then
+					createESP(p)
+					local esp=ESPs[p]
+					esp.Adornee=p.Character
+
+					if teamCheck and p.Team==LocalPlayer.Team then
+						esp.FillColor=Color3.fromRGB(0,255,0)
+					else
+						esp.FillColor=Color3.fromRGB(255,0,0)
+					end
+				else
+					removeESP(p)
+				end
+			end
+		end
+	end
+end)
 
 local function isVisible(part)
 	local origin=Camera.CFrame.Position
@@ -176,12 +226,15 @@ end
 local function valid(plr)
 	if plr==LocalPlayer then return false end
 	if not plr.Character then return false end
+
 	local head=plr.Character:FindFirstChild("Head")
 	local hum=plr.Character:FindFirstChild("Humanoid")
+
 	if not head then return false end
 	if aliveCheck and (not hum or hum.Health<=0) then return false end
 	if teamCheck and plr.Team==LocalPlayer.Team then return false end
 	if wallCheck and not isVisible(head) then return false end
+
 	return true
 end
 
@@ -189,6 +242,7 @@ local function getTarget()
 	local closest=nil
 	local dist=FOV_RADIUS
 	local center=Camera.ViewportSize/2
+
 	for _,p in pairs(Players:GetPlayers()) do
 		if valid(p) and p.Character and p.Character:FindFirstChild("Head") then
 			local pos,vis=Camera:WorldToViewportPoint(p.Character.Head.Position)
@@ -201,10 +255,11 @@ local function getTarget()
 			end
 		end
 	end
+
 	return closest
 end
 
--- mini FOV control panel
+-- FOV controls
 local fovPanel=Instance.new("Frame",frame)
 fovPanel.Size=UDim2.fromOffset(100,140)
 fovPanel.Position=UDim2.fromOffset(220,0)
@@ -234,39 +289,28 @@ toggleFOVBtn.Size=UDim2.fromOffset(40,30)
 toggleFOVBtn.Position=UDim2.fromOffset(160,10)
 toggleFOVBtn.Text="FOV"
 Instance.new("UICorner",toggleFOVBtn)
+
 toggleFOVBtn.MouseButton1Click:Connect(function()
 	fovPanel.Visible=not fovPanel.Visible
 end)
 
+-- MAIN LOOP
 RunService.RenderStepped:Connect(function()
 	local center=Camera.ViewportSize/2
 	circle.Position=center+Offset
 	circle.Radius=FOV_RADIUS
 	circle.Visible=fovEnabled
-	for _,p in pairs(Players:GetPlayers()) do
-		if p~=LocalPlayer and p.Character then
-			if espEnabled then
-				createESP(p)
-				local esp=ESPs[p]
-				esp.Adornee=p.Character
-				if teamCheck and p.Team==LocalPlayer.Team then
-					esp.FillColor=Color3.fromRGB(0,255,0)
-				else
-					esp.FillColor=Color3.fromRGB(255,0,0)
-				end
-			else
-				removeESP(p)
-			end
-		end
-	end
+
 	local target=getTarget()
+
 	if aimbotEnabled and target then
-		if Smoothness==0 then
-			Camera.CFrame=CFrame.lookAt(Camera.CFrame.Position,target.Position)
+		if Smoothness == 0 then
+			Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, target.Position)
 		else
-			Camera.CFrame=Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position,target.Position),Smoothness)
+			local targetCF = CFrame.lookAt(Camera.CFrame.Position, target.Position)
+			Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothness)
 		end
 	end
 end)
 
-print("obsidian hub loaded")
+print("obsidian hub loaded (ULTRA SMOOTH EDIT)")
